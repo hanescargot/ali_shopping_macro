@@ -34,6 +34,8 @@ def getDescripImg(driver):
 
 def getImgOptionText(driver):
     # 이미지로 된 옵션
+    driver.execute_script('window.scrollTo(0, 800);')
+    time.sleep(1)
     path = '.product-info>.product-sku>div>.sku-property>ul'
     uls = driver.find_elements_by_css_selector(path)
     resultStringList = []
@@ -51,7 +53,6 @@ def getAlloptionName(driver):
     path = '.product-info>.product-sku>div>.sku-property:nth-child(n+2)>ul'#:nth-child(n+2)
     uls = driver.find_elements_by_css_selector(path)
     resultStringList = []
-
     for i in uls:
         span = i.find_elements_by_css_selector("li>div>span")
         tmpList = []
@@ -65,7 +66,7 @@ async def main(type, maginPercent, categoryCode):
     print(type)
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9'}
-    HTML = 'https://ko.aliexpress.com/item/1005003624117637.html'
+    HTML = 'https://ko.aliexpress.com/item/1005003321002994.html'
     driver = webdriver.Chrome('C:/Users/pyrio/pythonProject/shopping_macro/chromedriver_win32/chromedriver.exe')
     driver.get(HTML)
 
@@ -111,7 +112,6 @@ async def main(type, maginPercent, categoryCode):
         print(product.price)
 
         #옵션 아이템 목록
-        print ("Issue!!!")
         product.optionName = (getImgOptionText(driver)+getAlloptionName(driver)).strip()
         print(product.optionName)
 
@@ -128,7 +128,30 @@ async def main(type, maginPercent, categoryCode):
         print(product.optionCategory)
 
         #설명 URL
-        product.imgUrl = "\n".join(getDescripImg(driver))
+        # product.imgUrl = "\n".join(getDescripImg(driver))
+        descriptionTag = driver.find_elements_by_css_selector('#product-description')
+        product.imgUrl = descriptionTag[0].get_attribute('innerHTML')
+        print("!!!")
+        # # 배송비
+        # deliverySearch = driver.find_elements_by_css_selector('.dynamic-shipping strong')
+        # print(deliverySearch)
+        # print("!!!!!!!!!")
+        # delivery = 60000
+        # if deliverySearch == "무료 배송":
+        #     delivery = 0
+        # else:
+        #     delivery = deliverySearch
+        #
+        # product.deliveryPrice =delivery
+        # product.deliveryRefund =delivery
+        # product.deliveryExchange =delivery
+
+
+
+
+
+
+
 
         #엑셀 작성
 
@@ -162,7 +185,8 @@ async def main(type, maginPercent, categoryCode):
                       '옵션값':product.optionName,
                       '옵션가':product.optionPrice,
                       '옵션 재고수량':product.optionCount,
-                      '스토어찜회원 전용여부':product.vip
+                      '스토어찜회원 전용여부':product.vip,
+                      'url':HTML
         }
         if(os.path.isfile(defPath+"result.xlsx")):
             print("excel from result")
@@ -181,8 +205,12 @@ async def main(type, maginPercent, categoryCode):
             result.loc[i,'원산지 코드'] = value
 
         result.to_excel(defPath+"result.xlsx", sheet_name="New", index=False)
-
-
+        #
+        #
+        # copyResult = df.append({'url' : HTML})
+        # copyResult.to_excel(defPath + "result_copy.xlsx", sheet_name="New", index=False)
+        #
+        #
 
 
         driver.close()
