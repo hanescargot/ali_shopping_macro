@@ -74,30 +74,6 @@ async def main(type, maginPercent, categoryCode):
 
     defPath = "C:/Users/pyrio/pythonProject/shopping_macro/"
 
-    # 대표, sub사진 저장 & 제목
-    imgSavePoint = defPath + "img_res/"
-    imgList = driver.find_elements_by_css_selector('.images-view-list img')
-    strSite = imgList[0].get_attribute('src').replace("_50x50.jpg_.webp", "")
-    strFileName = strSite.split("/")[-1]
-    # product.mainImgFileName = strFileName
-    print(strSite)
-    print(imgSavePoint + strFileName)
-    if os.path.exists(imgSavePoint + strFileName) != True:
-        # wget.download(strSite)
-        #헤더 없으면 403에러 남
-        r = requests.get(strSite, stream=True, headers={'User-agent': 'Mozilla/5.0'})
-        print(r.status_code)
-        if r.status_code == 200:
-            with open(imgSavePoint+strFileName, 'wb') as f:
-                r.raw.decode_content = True
-                shutil.copyfileobj(r.raw, f)
-    print("===file downloaded===")
-    # subFileList = []
-    # for img in imgList[1:]:
-    #     strFile = img.get_attribute('src').replace("_50x50.jpg_.webp", "").split("/")[-1]
-    #     subFileList.append(strFile)
-    #     wget.download(strFile, imgSavePoint + strFile)
-    # product.subImgFileName = "\n".join(subFileList)
     try:
         response = requests.get(HTML, headers=headers)
         # soup = BeautifulSoup(response.text, 'lxml')#'html.parser'    'lxml'
@@ -172,7 +148,42 @@ async def main(type, maginPercent, categoryCode):
         product.deliveryExchange =delivery
         print(delivery)
 
-
+        # 대표, sub사진 저장 & 제목
+        imgSavePoint = defPath + "img_res/"
+        imgList = driver.find_elements_by_css_selector('.images-view-list img')
+        strSite = imgList[0].get_attribute('src').replace("_50x50.jpg_.webp", "")
+        strFileName = strSite.split("/")[-2]+".jpg"
+        # product.mainImgFileName = strFileName
+        print(strSite)
+        print(imgSavePoint + strFileName)
+        #본격 다운로드
+        if os.path.exists(imgSavePoint + strFileName) != True:
+            # wget.download(strSite)
+            # 헤더 없으면 403에러 남
+            r = requests.get(strSite, stream=True, headers={'User-agent': 'Mozilla/5.0'})
+            print(r.status_code)
+            if r.status_code == 200:
+                with open(imgSavePoint + strFileName, 'wb') as f:
+                    r.raw.decode_content = True
+                    shutil.copyfileobj(r.raw, f)
+        print("===file downloaded===")
+        subFileNameList = []
+        for img in imgList[1:]:
+            strSite = img.get_attribute('src').replace("_50x50.jpg_.webp", "")
+            strFileName = strSite.split("/")[-2]+".jpg"
+            print(strSite)
+            subFileNameList.append(strFileName)
+            # 본격 다운로드
+            if os.path.exists(imgSavePoint + strFileName) != True:
+                # wget.download(strSite)
+                # 헤더 없으면 403에러 남
+                r = requests.get(strSite, stream=True, headers={'User-agent': 'Mozilla/5.0'})
+                print(r.status_code)
+                if r.status_code == 200:
+                    with open(imgSavePoint + strFileName, 'wb') as f:
+                        r.raw.decode_content = True
+                        shutil.copyfileobj(r.raw, f)
+        product.subImgFileName = "\n".join(subFileNameList)
 
 
 
