@@ -20,30 +20,55 @@ from dataclasses import asdict, dataclass
 
 
 
-
-
-async def getDescripImg():
-    HTML = 'https://de.aliexpress.com/item/1005003624117637.html'
-    driver = webdriver.Chrome('C:/Users/pyrio/pythonProject/shopping_macro/chromedriver_win32/chromedriver.exe')
-    driver.get(HTML)
-
+def getDescripImg(driver):
     # 스크롤 기능
     driver.execute_script('window.scrollTo(0, 800);')
     time.sleep(1)
     print('====success=====')
-    items = driver.find_elements_by_css_selector('#product-description>div>p>img')
-
+    items = driver.find_elements_by_css_selector('#product-description img')
+    resultList = []
     for i in items:
-        print(i.get_attribute("src"))
+        resultList.append(i.get_attribute("src"))
+    print(resultList)
+    return resultList
 
-    await driver.close()
-    return
+def getImgOptionText(driver):
+    # 이미지로 된 옵션
+    path = '.product-info>.product-sku>div>.sku-property>ul'
+    uls = driver.find_elements_by_css_selector(path)
+    resultStringList = []
+    for i in uls:
+        img = i.find_elements_by_css_selector("li img")
+        tmpList = []
+        for s in img:
+            data = s.get_attribute("alt")
+            tmpList.append(data)
+        resultStringList.append(", ".join(tmpList))
+
+    return "\n".join(resultStringList)
+
+def getAlloptionName(driver):
+    path = '.product-info>.product-sku>div>.sku-property:nth-child(n+2)>ul'#:nth-child(n+2)
+    uls = driver.find_elements_by_css_selector(path)
+    resultStringList = []
+
+    for i in uls:
+        span = i.find_elements_by_css_selector("li>div>span")
+        tmpList = []
+        for s in span:
+            data = s.text
+            tmpList.append(data)
+        resultStringList.append(", ".join(tmpList))
+    return "\n".join(resultStringList)
 
 async def main(type, maginPercent, categoryCode):
     print(type)
     headers = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_2) AppleWebKit/601.3.9 (KHTML, like Gecko) Version/9.0.2 Safari/601.3.9'}
-    HTML = 'https://de.aliexpress.com/item/1005003624117637.html'
+    HTML = 'https://ko.aliexpress.com/item/1005003624117637.html'
+    driver = webdriver.Chrome('C:/Users/pyrio/pythonProject/shopping_macro/chromedriver_win32/chromedriver.exe')
+    driver.get(HTML)
+
 
     try:
         response = requests.get(HTML, headers=headers)
@@ -67,32 +92,45 @@ async def main(type, maginPercent, categoryCode):
         h1 = html.find("title")
         title = h1[0].text
         print(title)
-        product.name = title
+        product.name = title[:100]
 
         rating_count = html.find('.product-reviewer-reviews')
         rating = rating_count[0].text
         print(rating)
         # .uniform-banner-box-price
         # .product-price-value
-        price = html.find('.product-price-value')[0].text
+        priceList = html.find('.product-price-value')
+
+        if len(priceList)<1:
+            priceList = html.find('.uniform-banner-box-price')
+        price = priceList[0].text
         print(price)
         price = int(price.replace(",","").split(" ")[-1])
         product.price= round(price + price/100*maginPercent, -2)
         print(price)
         print(product.price)
 
-        # '#root>div>.product-main>div>.product-info>.product-sku>div>div:nth-child(1)>ul li>div' //국가
-        # '#root>div>.product-main>div>.product-info>.product-sku>div>div:nth-child(2)>ul li>div' // 옵션 이미지
-        # .product-info>.product-sku>div>.sku-property:nth-child(3)>ul li:nth-child(1)>div //옵션 텍스트
-        # '.product-info>.product-sku>div>.sku-property:nth-child(3)>ul li>.sku-property-text>span'
-        propertyPath = '.product-info>.product-sku li>.sku-property-text>span'
-        property = html.find(propertyPath)
-        for p in property:
-            print(p.text)
-        print("===pass property==")
+        #옵션 아이템 목록
+        print ("Issue!!!")
+        product.optionName = (getImgOptionText(driver)+getAlloptionName(driver)).strip()
+        print(product.optionName)
 
+        print('카테고리!!')
+        #옵션 카테고리 타이틀
+        categoryList = []
+        categoryPath = '.sku-property .sku-title'
+        for i in html.find(categoryPath):
+            t = i.text[:-1]
+            if not( t == '수량' or t == '배송지'):
+                categoryList.append(t)
 
-        getDescripImg()
+        product.optionCategory += "\n".join(categoryList)
+        print(product.optionCategory)
+
+        #설명 URL
+        product.imgUrl = "\n".join(getDescripImg(driver))
+
+        #엑셀 작성
 
         defPath = "C:/Users/pyrio/pythonProject/shopping_macro/"
         # df = pd.json_normalize(asdict(Product()))
@@ -131,7 +169,7 @@ async def main(type, maginPercent, categoryCode):
             df = pd.read_excel(defPath+"result.xlsx",engine='openpyxl')
         else:
             print("excel from template")
-            df = pd.read_excel(defPath+"ProductTemplate.xls", engine='openpyxl')
+            df = pd.read_excel(defPath+"Template.xlsx", engine='openpyxl')
 
 
 
@@ -144,11 +182,15 @@ async def main(type, maginPercent, categoryCode):
 
         result.to_excel(defPath+"result.xlsx", sheet_name="New", index=False)
 
-        # await html.browser.close()
+
+
+
+        driver.close()
+        await html.browser.close()
     except:
         print("error")
-
-        # await html.browser.close()
+        driver.close()
+        await html.browser.close()
 
 
 

@@ -25,7 +25,7 @@ class Product:
     deliveryRefund : int = 60000
     deliveryExchange : int = 60000
     optionType : str = "단독형"
-    optionCategory : str = "" #띄어쓰기로 구분
+    optionCategory : str = "" #줄바꿈으로 구분
     optionName : str = "" # 이름은,로 카테고리는 줄바꿈으로 구반
     optionPrice : str = "" #,로 구분 없으면 0원
     optionCount : str = "" #재고수량 ,로 구분
