@@ -167,6 +167,7 @@ async def main(type, maginPercent, categoryCode):
                     r.raw.decode_content = True
                     shutil.copyfileobj(r.raw, f)
         print("===file downloaded===")
+        product.mainImgFileName = strFileName
         subFileNameList = []
         for img in imgList[1:]:
             strSite = img.get_attribute('src').replace("_50x50.jpg_.webp", "")
@@ -183,7 +184,7 @@ async def main(type, maginPercent, categoryCode):
                     with open(imgSavePoint + strFileName, 'wb') as f:
                         r.raw.decode_content = True
                         shutil.copyfileobj(r.raw, f)
-        product.subImgFileName = "\n".join(subFileNameList)
+        product.subImgFileName = ", ".join(subFileNameList)
 
 
 
@@ -251,9 +252,9 @@ async def main(type, maginPercent, categoryCode):
         #
         #
 
-
         driver.close()
         await html.browser.close()
+        print("============성공=========")
     except:
         print("error")
         driver.close()
