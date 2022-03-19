@@ -1,7 +1,9 @@
 import datetime
+import shutil
 import time
 
 import requests
+import wget
 from bs4 import BeautifulSoup as soup, BeautifulSoup
 from requests_html import AsyncHTMLSession
 import pyppdf.patch_pyppeteer
@@ -70,11 +72,35 @@ async def main(type, maginPercent, categoryCode):
     driver = webdriver.Chrome('C:/Users/pyrio/pythonProject/shopping_macro/chromedriver_win32/chromedriver.exe')
     driver.get(HTML)
 
+    defPath = "C:/Users/pyrio/pythonProject/shopping_macro/"
 
+    # 대표, sub사진 저장 & 제목
+    imgSavePoint = defPath + "img_res/"
+    imgList = driver.find_elements_by_css_selector('.images-view-list img')
+    strSite = imgList[0].get_attribute('src').replace("_50x50.jpg_.webp", "")
+    strFileName = strSite.split("/")[-1]
+    # product.mainImgFileName = strFileName
+    print(strSite)
+    print(imgSavePoint + strFileName)
+    if os.path.exists(imgSavePoint + strFileName) != True:
+        # wget.download(strSite)
+        #헤더 없으면 403에러 남
+        r = requests.get(strSite, stream=True, headers={'User-agent': 'Mozilla/5.0'})
+        print(r.status_code)
+        if r.status_code == 200:
+            with open(imgSavePoint+strFileName, 'wb') as f:
+                r.raw.decode_content = True
+                shutil.copyfileobj(r.raw, f)
+    print("===file downloaded===")
+    # subFileList = []
+    # for img in imgList[1:]:
+    #     strFile = img.get_attribute('src').replace("_50x50.jpg_.webp", "").split("/")[-1]
+    #     subFileList.append(strFile)
+    #     wget.download(strFile, imgSavePoint + strFile)
+    # product.subImgFileName = "\n".join(subFileList)
     try:
         response = requests.get(HTML, headers=headers)
-        soup = BeautifulSoup(response.text, 'lxml')#'html.parser'    'lxml'
-        print(soup)
+        # soup = BeautifulSoup(response.text, 'lxml')#'html.parser'    'lxml'
         print("===================================")
 
 
@@ -131,20 +157,24 @@ async def main(type, maginPercent, categoryCode):
         # product.imgUrl = "\n".join(getDescripImg(driver))
         descriptionTag = driver.find_elements_by_css_selector('#product-description')
         product.imgUrl = descriptionTag[0].get_attribute('innerHTML')
-        print("!!!")
-        # # 배송비
-        # deliverySearch = driver.find_elements_by_css_selector('.dynamic-shipping strong')
-        # print(deliverySearch)
-        # print("!!!!!!!!!")
-        # delivery = 60000
-        # if deliverySearch == "무료 배송":
-        #     delivery = 0
-        # else:
-        #     delivery = deliverySearch
-        #
-        # product.deliveryPrice =delivery
-        # product.deliveryRefund =delivery
-        # product.deliveryExchange =delivery
+
+        # 배송비
+        deliverySearch = driver.find_elements_by_css_selector('.product-shipping-price span')
+        priceStr = deliverySearch[0].text
+        if priceStr == "무료 배송":
+            delivery = 0
+        else:
+            won = round(int(priceStr.split(" ")[2].replace(",","")),-3)
+            delivery=won
+
+        product.deliveryPrice =delivery
+        product.deliveryRefund =delivery
+        product.deliveryExchange =delivery
+        print(delivery)
+
+
+
+
 
 
 
@@ -154,8 +184,6 @@ async def main(type, maginPercent, categoryCode):
 
 
         #엑셀 작성
-
-        defPath = "C:/Users/pyrio/pythonProject/shopping_macro/"
         # df = pd.json_normalize(asdict(Product()))
         columns = {'상품상태':product.state,
                       '카테고리ID': product.categoryCode,
